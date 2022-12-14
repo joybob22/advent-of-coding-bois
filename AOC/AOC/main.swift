@@ -10,5 +10,5 @@ import Foundation
 //day12.part2(input: day12Input)
 
 let day13 = Day13()
-print(day13.part1(input: day13TestInput))
+print(day13.part1(input: day13Input))
 

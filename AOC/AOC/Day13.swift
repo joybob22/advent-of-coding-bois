@@ -26,6 +26,9 @@ let day13TestInput = """
 []
 [3]
 
+[[1,2,3,4],5,6,7,[8,9]]
+[[1,2,3,4],5,6,7,[8,9]]
+
 [[[]]]
 [[]]
 
@@ -494,6 +497,9 @@ struct Day13 {
     
     class Day13List: Node {
         var children: [Node] = []
+        init(children: [Node]) {
+            self.children = children
+        }
     }
     
     class Day13Num: Node {
@@ -511,6 +517,59 @@ struct Day13 {
         }
     }
     
+    private func printPacket(packet: Day13List) -> String {
+        var str = "["
+        for child in packet.children {
+            if let num = child as? Day13Num {
+                str+="\(num.value), "
+            } else {
+                let list = child as! Day13List
+                str+=printPacket(packet: list)
+            }
+            
+        }
+        str+="]"
+        return str
+    }
+    
+    private func checkPackets(left: Day13List, right: Day13List) -> Bool {
+        if left.children.isEmpty && right.children.isEmpty { return true }
+        for (i, leftChild) in left.children.enumerated() {
+            //Ran out of items in the right array
+            if i > right.children.count-1 { return false }
+            
+            //See if both items are numbers
+            if let leftNode = leftChild as? Day13Num, let rightNode = right.children[i] as? Day13Num {
+                //If right is less than left the arrays are not in order
+                if leftNode.value > rightNode.value {
+                    return false
+                }
+                if leftNode.value < rightNode.value {
+                    return true
+                }
+            }
+            
+            //If one item is a number and the other is an array we need to make that number its own array
+            if let leftNode = leftChild as? Day13Num, let rightList = right.children[i] as? Day13List {
+                left.children[i] = Day13List(children: [Day13Num(value: leftNode.value)])
+                let newLeft = left.children[i] as! Day13List
+                return checkPackets(left: newLeft, right: rightList)
+            }
+            if let leftList = leftChild as? Day13List, let rightNode = right.children[i] as? Day13Num {
+                right.children[i] = Day13List(children: [Day13Num(value: rightNode.value)])
+                let newRight = right.children[i] as! Day13List
+                return checkPackets(left: leftList, right: newRight)
+            }
+            
+            //If both items are lists
+            if let leftList = leftChild as? Day13List, let rightList = right.children[i] as? Day13List {
+                return checkPackets(left: leftList, right: rightList)
+            }
+        }
+        //We made it through all the items. Must be in order
+        return true
+    }
+    
     func part1(input: String) -> Int {
         
         
@@ -524,45 +583,56 @@ struct Day13 {
             var layer = 0
             var subIndex = 0
             var indexes: [Int] = []
-            var firstSet: Day13List = Day13List()
-            var secondSet = Day13List()
+            var firstSet: Day13List = Day13List(children: [])
+            var secondSet = Day13List(children: [])
             
-            for char in first {
-                if char.isNumber {
+            //TODO: Need to account for two digit numbers....
+            
+            for (i, char) in first.enumerated() {
+                if i == 0 || i == first.count-1 {continue}
+                 if char.isNumber {
                     insert(arr: firstSet, node: Day13Num(value: Int(String(char))!), indexes: indexes, layer: layer, currentLayer: 0)
                     subIndex+=1
                 } else if char == "[" {
-                    insert(arr: firstSet, node: Day13List(), indexes: indexes, layer: layer, currentLayer: 0)
+                    insert(arr: firstSet, node: Day13List(children: []), indexes: indexes, layer: layer, currentLayer: 0)
                     indexes.append(subIndex)
                     subIndex = 0
                     layer+=1
                 } else if char == "]" {
-                    subIndex = indexes[indexes.count-1]
+                    subIndex = indexes[indexes.count-1]+1
                     indexes.remove(at: indexes.count-1)
                     layer-=1
                 }
             }
             layer = 0
-            let check = firstSet.children[0] as! Day13List
-            let check1 = check.children
+            subIndex = 0
             indexes = []
-            for char in second {
+            for (i,char) in second.enumerated() {
+                if i == 0 || i == second.count-1 {continue}
                 if char.isNumber {
                     insert(arr: secondSet, node: Day13Num(value: Int(String(char))!), indexes: indexes, layer: layer, currentLayer: 0)
                     subIndex+=1
                 } else if char == "[" {
-                    insert(arr: secondSet, node: Day13List(), indexes: indexes, layer: layer, currentLayer: 0)
+                    insert(arr: secondSet, node: Day13List(children: []), indexes: indexes, layer: layer, currentLayer: 0)
                     indexes.append(subIndex)
                     subIndex = 0
                     layer+=1
                 } else if char == "]" {
-                    subIndex = indexes[indexes.count-1]
+                    subIndex = indexes[indexes.count-1]+1
                     indexes.remove(at: indexes.count-1)
                     layer-=1
                 }
             }
             
+//            print(printPacket(packet: firstSet))
+//            print(printPacket(packet: secondSet))
             
+            if checkPackets(left: firstSet, right: secondSet) {
+                print(index)
+                print(printPacket(packet: firstSet))
+                print(printPacket(packet: secondSet))
+                indices+=(index+1)
+            }
             
             
 //            var firstSet: [Int] = []
